@@ -10,36 +10,9 @@ body {
   background-color: #fafafa;
   color: #212121;
   line-height: 1.5;
+  /* text-align: center; */
 }
 
-#search-box {
-  font: inherit;
-  padding: 8px;
-  max-width: 320px;
-  margin-bottom: 16px;
-}
-
-.country-image{
-  width: 30px;
-  margin-right: 10px;
-}
-
-.country-list{
-  padding: 0px;
-  list-style: none;
-  font-weight: 500;
-  font-size: 20px;
-}
-
-.country-item{
-  display: flex;
-  align-items: center;
-}
-
-span{
-  font-weight: bold;
-}
-
-.country-info{
-  font-size: 18px;
+.search-form{
+  text-align: center;
 }
