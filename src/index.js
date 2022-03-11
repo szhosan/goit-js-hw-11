@@ -28,6 +28,10 @@ async function onSearch(e) {
   photoApiService.resetPage();
   try {
     createMarkup(await photoApiService.getPhotos());
+    if (photoApiService.totalHits === 0) {
+      Notify.failure('Sorry, there are no images matching your search query. Please try again.');
+      return;
+    }
     Notify.success(`Hooray! We found ${photoApiService.totalHits} images.`);
   } catch (error) {
     Notify.failure(error);
@@ -39,6 +43,9 @@ function clearGallery() {
 }
 
 function createMarkup({ data }) {
+  if (data.totalHits === 0) {
+    return;
+  }
   let markup = data.hits
     .map(photoInfo => {
       return `<div class="photo-card"><a class="gallery__item" href='${photoInfo.largeImageURL}'>
@@ -68,7 +75,7 @@ function createMarkup({ data }) {
 function onEntry(entries) {
   entries.forEach(entry => {
     if (entry.isIntersecting && photoApiService.query !== '') {
-        if (photoApiService.areAllRequestedPhotosShown()) {
+      if (photoApiService.areAllRequestedPhotosShown()) {
         Notify.failure(`We're sorry, but you've reached the end of search results.`);
         return;
       }
