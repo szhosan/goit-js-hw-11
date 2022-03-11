@@ -2,6 +2,7 @@ import './css/styles.css';
 import 'simplelightbox/dist/simple-lightbox.css';
 import PhotoApiService from './js/photo-service';
 import SimpleLightbox from 'simplelightbox';
+import { Notify } from 'notiflix/build/notiflix-notify-aio';
 
 const axios = require('axios');
 
@@ -12,11 +13,10 @@ let lightbox = new SimpleLightbox('.gallery a', { captionsData: 'alt', captionDe
 const refs = {
   searchForm: document.querySelector('#search-form'),
   gallery: document.querySelector('.gallery'),
-  loadMoreBut: document.querySelector('.loadMoreBut'),
+  sentinel: document.querySelector('#sentinel'),
 };
 
 refs.searchForm.addEventListener('submit', onSearch);
-refs.loadMoreBut.addEventListener('click', onLoadMore);
 
 async function onSearch(e) {
   e.preventDefault();
@@ -24,7 +24,7 @@ async function onSearch(e) {
   photoApiService.query = e.currentTarget.elements.searchQuery.value;
   photoApiService.resetPage();
   createMarkup(await photoApiService.getPhotos());
-  lightbox.refresh();
+  Notify.success(`Hooray! We found ${photoApiService.totalHits} images.`);
 }
 
 function clearGallery() {
@@ -32,11 +32,10 @@ function clearGallery() {
 }
 
 function createMarkup({ data }) {
-  console.log(data);
   let markup = data.hits
     .map(photoInfo => {
-      return `<a class="gallery__item" href='${photoInfo.largeImageURL}'>
-    <img class="gallery__image" src="${photoInfo.webformatURL}" alt="${photoInfo.tags}" loading="lazy" />
+      return `<div class="photo-card"><a class="gallery__item" href='${photoInfo.largeImageURL}'>
+    <img class="gallery__image" src="${photoInfo.webformatURL}" alt="${photoInfo.tags}" loading="lazy" /></a>
     <div class="info">
     <p class="info-item">
       <b>Likes</b>${photoInfo.likes}
@@ -51,13 +50,27 @@ function createMarkup({ data }) {
       <b>Downloads</b>${photoInfo.downloads}
     </p>
   </div>
-    </a>`;
-    }).join('');
+    </div>`;
+    })
+    .join('');
   refs.gallery.insertAdjacentHTML('beforeend', markup);
   lightbox.refresh();
 }
 
-async function onLoadMore() {
-  createMarkup(await photoApiService.getPhotos());
-  lightbox.refresh();
+function onEntry(entries) {
+  entries.forEach(entry => {
+    if (entry.isIntersecting && photoApiService.query !== '') {
+      if (photoApiService.areAllRequestedPhotosShown()) {
+        Notify.failure(`We're sorry, but you've reached the end of search results.`);
+        return;
+      }
+      photoApiService.getPhotos().then(createMarkup);
+    }
+  });
 }
+
+
+const observer = new IntersectionObserver(onEntry, {
+  rootMargin: '150px',
+});
+observer.observe(refs.sentinel);

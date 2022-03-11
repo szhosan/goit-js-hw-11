@@ -1,13 +1,14 @@
 const axios = require('axios').default;
+const PHOTOS_PER_PAGE = 40;
 
 export default class PhotoApiService {
   constructor() {
     this.searchQuery = '';
     this.page = 1;
+    this.totalHits = 0;
   }
 
   async getPhotos() {
-    //console.log(this);
     const instance = axios.create({
       baseURL: 'https://pixabay.com/api/',
       url: '',
@@ -18,14 +19,15 @@ export default class PhotoApiService {
         orientation: 'horizontal',
         safesearch: 'true',
         page: this.page,
-        per_page: 40,
+        per_page: PHOTOS_PER_PAGE,
       },
     });
 
     try {
       const response = await instance.get();
       this.incrementPage();
-      return response;      
+      this.totalHits = response.data.totalHits;
+      return response;
     } catch (error) {
       console.error(error);
     }
@@ -39,11 +41,21 @@ export default class PhotoApiService {
     this.page = 1;
   }
 
+  get currentPage() {
+    return this.page;
+  }
+
   get query() {
     return this.searchQuery;
   }
 
   set query(newQuery) {
     this.searchQuery = newQuery;
+  }
+
+  areAllRequestedPhotosShown() {
+    if ((this.page - 1) * PHOTOS_PER_PAGE > this.totalHits) {
+      return true;
+    } else return false;
   }
 }
