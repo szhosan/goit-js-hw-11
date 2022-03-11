@@ -13,8 +13,11 @@ let lightbox = new SimpleLightbox('.gallery a', { captionsData: 'alt', captionDe
 const refs = {
   searchForm: document.querySelector('#search-form'),
   gallery: document.querySelector('.gallery'),
-  sentinel: document.querySelector('#sentinel'),
 };
+
+const observer = new IntersectionObserver(onEntry, {
+  rootMargin: '150px',
+});
 
 refs.searchForm.addEventListener('submit', onSearch);
 
@@ -23,8 +26,12 @@ async function onSearch(e) {
   clearGallery();
   photoApiService.query = e.currentTarget.elements.searchQuery.value;
   photoApiService.resetPage();
-  createMarkup(await photoApiService.getPhotos());
-  Notify.success(`Hooray! We found ${photoApiService.totalHits} images.`);
+  try {
+    createMarkup(await photoApiService.getPhotos());
+    Notify.success(`Hooray! We found ${photoApiService.totalHits} images.`);
+  } catch (error) {
+    Notify.failure(error);
+  }
 }
 
 function clearGallery() {
@@ -55,22 +62,22 @@ function createMarkup({ data }) {
     .join('');
   refs.gallery.insertAdjacentHTML('beforeend', markup);
   lightbox.refresh();
+  observer.observe(refs.gallery.lastElementChild);
 }
 
 function onEntry(entries) {
   entries.forEach(entry => {
     if (entry.isIntersecting && photoApiService.query !== '') {
-      if (photoApiService.areAllRequestedPhotosShown()) {
+        if (photoApiService.areAllRequestedPhotosShown()) {
         Notify.failure(`We're sorry, but you've reached the end of search results.`);
         return;
       }
-      photoApiService.getPhotos().then(createMarkup);
+      try {
+        photoApiService.getPhotos().then(createMarkup);
+        observer.unobserve(entry.target);
+      } catch (error) {
+        Notify.failure(error);
+      }
     }
   });
 }
-
-
-const observer = new IntersectionObserver(onEntry, {
-  rootMargin: '150px',
-});
-observer.observe(refs.sentinel);
